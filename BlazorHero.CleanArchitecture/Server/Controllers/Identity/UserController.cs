@@ -19,7 +19,7 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.Identity
             _userService = userService;
         }
 
-        [Authorize(Policy = Permissions.Users.View)]
+        //[Authorize(Policy = Permissions.Users.View)]
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -27,7 +27,7 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.Identity
             return Ok(users);
         }
 
-        [Authorize(Policy = Permissions.Users.View)]
+        //[Authorize(Policy = Permissions.Users.View)]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
@@ -49,8 +49,7 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.Identity
         {
             return Ok(await _userService.UpdateRolesAsync(request));
         }
-
-        [Authorize(Policy = Permissions.Users.Edit)]
+        [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> RegisterAsync(RegisterRequest request)
         {

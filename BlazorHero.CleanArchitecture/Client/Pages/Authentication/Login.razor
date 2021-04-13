@@ -21,6 +21,11 @@
             </div>
         </MudItem>
         <MudItem xs="12">
+            <div class="d-flex justify-center">
+                <MudText>Don't have an account? <MudLink Href="/register">Register here</MudLink></MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="12">
             <MudTextField T="string" Label="@localizer["E-mail"]" Variant="Variant.Outlined"
                           @bind-Value="model.Email" For="@(() => model.Email)" Required="true" RequiredError="@localizer["Email is required!"]"></MudTextField>
         </MudItem>
@@ -36,10 +41,10 @@
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Style="width: 100%;">@localizer["Sign In"]</MudButton>
         </MudItem>
         <MudItem xs="12">
-            <MudButton OnClick="FillAdminstratorCredentials">Fill Administrator Credentials</MudButton>
+            <MudButton OnClick="FillAdminstratorCredentials">@localizer["Fill Administrator Credentials"]</MudButton>
         </MudItem>
         <MudItem xs="12">
-            <MudButton OnClick="FillBasicUserCredentials">Fill Basic User Credentials</MudButton>
+            <MudButton OnClick="FillBasicUserCredentials">@localizer["Fill Basic User Credentials"]</MudButton>
         </MudItem>
     </MudGrid>
 </EditForm>

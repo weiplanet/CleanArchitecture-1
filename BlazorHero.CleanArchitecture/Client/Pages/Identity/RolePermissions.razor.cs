@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using BlazorHero.CleanArchitecture.Application.Requests.Identity;
 using BlazorHero.CleanArchitecture.Application.Responses.Identity;
+using BlazorHero.CleanArchitecture.Client.Extensions;
 using BlazorHero.CleanArchitecture.Client.Infrastructure.Mappings;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
 using System;
 using System.Threading.Tasks;
@@ -33,10 +35,16 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                 model = result.Data;
                 if (model != null)
                 {
-                    Description = $"Manage {model.RoleId} {model.RoleName}'s Permissions";
+                    Description = $"{localizer["Manage"]} {model.RoleId} {model.RoleName}'s {localizer["Permissions"]}";
                 }
             }
+            hubConnection = hubConnection.TryInitialize(_navigationManager);
+            if (hubConnection.State == HubConnectionState.Disconnected)
+            {
+                await hubConnection.StartAsync();
+            }
         }
+        [CascadingParameter] public HubConnection hubConnection { get; set; }
         private async Task SaveAsync()
         {
             var request = _mapper.Map<PermissionResponse, PermissionRequest>(model);
@@ -44,13 +52,14 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             if (result.Succeeded)
             {
                 _snackBar.Add(localizer[result.Messages[0]], Severity.Success);
+                await hubConnection.SendAsync("RegenerateTokensAsync");
                 _navigationManager.NavigateTo("/identity/roles");
             }
             else
             {
                 foreach (var error in result.Messages)
                 {
-                    _snackBar.Add(error, Severity.Error);
+                    _snackBar.Add(localizer[error], Severity.Error);
                 }
             }
         }

@@ -46,8 +46,13 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
             {
                 var token = result.Data.Token;
                 var refreshToken = result.Data.RefreshToken;
+                var userImageURL = result.Data.UserImageURL;
                 await _localStorage.SetItemAsync("authToken", token);
                 await _localStorage.SetItemAsync("refreshToken", refreshToken);
+                if(!string.IsNullOrEmpty(userImageURL))
+                {
+                    await _localStorage.SetItemAsync("userImageURL", userImageURL);
+                }               
                 ((BlazorHeroStateProvider)this._authenticationStateProvider).MarkUserAsAuthenticated(model.Email);
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 return Result.Success();
@@ -62,6 +67,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
         {
             await _localStorage.RemoveItemAsync("authToken");
             await _localStorage.RemoveItemAsync("refreshToken");
+            await _localStorage.RemoveItemAsync("userImageURL");
             ((BlazorHeroStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
             _httpClient.DefaultRequestHeaders.Authorization = null;
             return Result.Success();
@@ -80,7 +86,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
 
             if (!result.Succeeded)
             {
-                throw new ApplicationException("Something went wrong during the refresh token action");
+                throw new ApplicationException($"Something went wrong during the refresh token action");
             }
 
             token = result.Data.Token;
@@ -93,6 +99,9 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
 
         public async Task<string> TryRefreshToken()
         {
+            //check if token exists
+            var availableToken = await _localStorage.GetItemAsync<string>("refreshToken");
+            if (string.IsNullOrEmpty(availableToken)) return string.Empty;
             var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
             var exp = user.FindFirst(c => c.Type.Equals("exp")).Value;
@@ -102,6 +111,10 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
             if (diff.TotalMinutes <= 1)
                 return await RefreshToken();
             return string.Empty;
+        }
+        public async Task<string> TryForceRefreshToken()
+        {
+            return await RefreshToken();
         }
     }
 }

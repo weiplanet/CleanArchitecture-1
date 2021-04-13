@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
@@ -23,14 +24,14 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             if (response.Succeeded)
             {
                 await _authenticationManager.Logout();
-                _snackBar.Add("Your Profile has been updated. Please Login to Continue.", Severity.Success);
+                _snackBar.Add(localizer["Your Profile has been updated. Please Login to Continue."], Severity.Success);
                 _navigationManager.NavigateTo("/");
             }
             else
             {
                 foreach (var message in response.Messages)
                 {
-                    _snackBar.Add(message, Severity.Error);
+                    _snackBar.Add(localizer[message], Severity.Error);
                 }
             }
         }
@@ -69,24 +70,27 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             file = e.File;
             if (file != null)
             {
+                var extension = Path.GetExtension(file.Name);
+                var fileName = $"{UserId}-{Guid.NewGuid()}{extension}";                
                 var format = "image/png";
-                var imageFile = await e.File.RequestImageFileAsync(format, 250, 250);
+                var imageFile = await e.File.RequestImageFileAsync(format,400,400);
                 var buffer = new byte[imageFile.Size];
                 await imageFile.OpenReadStream().ReadAsync(buffer);
-                ImageDataUrl = $"data:{format};base64,{Convert.ToBase64String(buffer)}";
-                var request = new UpdateProfilePictureRequest() { ProfilePictureDataUrl = ImageDataUrl };
+                var request = new UpdateProfilePictureRequest() { Data = buffer, FileName = fileName, Extension = extension, UploadType = Application.Enums.UploadType.ProfilePicture };
                 var result = await _accountManager.UpdateProfilePictureAsync(request, UserId);
                 if (result.Succeeded)
                 {
+                    await _localStorage.SetItemAsync("userImageURL", result.Data);
                     _navigationManager.NavigateTo("/account", true);
                 }
                 else
                 {
                     foreach (var error in result.Messages)
                     {
-                        _snackBar.Add(error, Severity.Success);
+                        _snackBar.Add(localizer[error], Severity.Error);
                     }
                 }
+
             }
         }
 
@@ -99,10 +103,11 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             var result = await dialog.Result;
             if (!result.Cancelled)
             {
-                var request = new UpdateProfilePictureRequest() { ProfilePictureDataUrl = string.Empty };
+                var request = new UpdateProfilePictureRequest() { Data = null, FileName = string.Empty, UploadType = Application.Enums.UploadType.ProfilePicture };
                 var data = await _accountManager.UpdateProfilePictureAsync(request, UserId);
                 if (data.Succeeded)
                 {
+                    await _localStorage.RemoveItemAsync("userImageURL");
                     ImageDataUrl = string.Empty;
                     _navigationManager.NavigateTo("/account", true);
                 }
@@ -110,7 +115,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                 {
                     foreach (var error in data.Messages)
                     {
-                        _snackBar.Add(error, Severity.Success);
+                        _snackBar.Add(localizer[error], Severity.Error);
                     }
                 }
             }

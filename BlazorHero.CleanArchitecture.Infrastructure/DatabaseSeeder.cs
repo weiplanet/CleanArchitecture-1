@@ -1,12 +1,11 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Helpers;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
+using BlazorHero.CleanArchitecture.Application.Models.Identity;
 using BlazorHero.CleanArchitecture.Infrastructure.Contexts;
 using BlazorHero.CleanArchitecture.Shared.Constants.Permission;
 using BlazorHero.CleanArchitecture.Shared.Constants.Role;
 using BlazorHero.CleanArchitecture.Shared.Constants.User;
-using BlazorHero.CleanArchitecture.Shared.Models.Identity;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
@@ -30,16 +29,22 @@ namespace BlazorHero.CleanArchitecture.Infrastructure
 
         public void Initialize()
         {
-            try
-            {
-                _db.Database.Migrate();
-            }
-            catch
-            {
-            }            
+            AddCustomerPermissionClaims();
             AddAdministrator();
             AddBasicUser();
             _db.SaveChanges();
+        }
+
+        private void AddCustomerPermissionClaims()
+        {
+            Task.Run(async () =>
+            {
+                var adminRoleInDb = await _roleManager.FindByNameAsync(RoleConstant.AdministratorRole);
+                if (adminRoleInDb != null)
+                {
+                    await _roleManager.AddCustomPermissionClaim(adminRoleInDb, "Permissions.Communication.Chat");                    
+                }               
+            }).GetAwaiter().GetResult();
         }
 
         private void AddAdministrator()
@@ -77,6 +82,7 @@ namespace BlazorHero.CleanArchitecture.Infrastructure
                         await _roleManager.GeneratePermissionClaimByModule(adminRole, PermissionModules.Roles);
                         await _roleManager.GeneratePermissionClaimByModule(adminRole, PermissionModules.Products);
                         await _roleManager.GeneratePermissionClaimByModule(adminRole, PermissionModules.Brands);
+                       
                     }
                     _logger.LogInformation("Seeded User with Administrator Role.");
                 }

@@ -11,6 +11,7 @@
 @using Microsoft.JSInterop
 @using Microsoft.AspNetCore.Identity;
 @using MudBlazor
+@using Blazored.LocalStorage;
 
 @*Client Services*@
 @using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.Account
@@ -22,6 +23,9 @@
 @using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Catalog.Product
 @using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Catalog.Brand
 @using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Dashboard
+@using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Communication
+@using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Audit
+@using BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Document
 
 @*Shared Libraries*@
 @using BlazorHero.CleanArchitecture.Shared.Constants.Permission
@@ -33,7 +37,7 @@
 @using BlazorHero.CleanArchitecture.Client.Infrastructure.Settings
 
 @using BlazorHero.CleanArchitecture.Application.Requests.Identity
-@using BlazorHero.CleanArchitecture.Shared.Models.Identity;
+@using BlazorHero.CleanArchitecture.Application.Models.Identity
 
 @using BlazorHero.CleanArchitecture.Client.Pages.Authentication
 
@@ -56,3 +60,8 @@
 @inject IProductManager _productManager
 @inject IBrandManager _brandManager
 @inject IDashboardManager _dashboardManager
+@inject IChatManager _chatManager
+@inject IAuditManager _auditManager
+@inject ILocalStorageService _localStorage;
+@inject IJSRuntime _jsRuntime;
+@inject IDocumentManager _documentManager;

@@ -130,7 +130,7 @@
     <value>Cancel</value>
   </data>
   <data name="Delete" xml:space="preserve">
-    <value>Eliminar</value>
+    <value>Delete</value>
   </data>
   <data name="Description" xml:space="preserve">
     <value>Description</value>
@@ -152,6 +152,9 @@
   </data>
   <data name="Save" xml:space="preserve">
     <value>Save</value>
+  </data>
+  <data name="Select a Brand." xml:space="preserve">
+    <value>Select a Brand.</value>
   </data>
   <data name="Update" xml:space="preserve">
     <value>Update</value>

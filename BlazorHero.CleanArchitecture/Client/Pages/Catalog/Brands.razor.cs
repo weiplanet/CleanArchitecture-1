@@ -1,4 +1,7 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Features.Brands.Queries.GetAll;
+using BlazorHero.CleanArchitecture.Client.Extensions;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
 using System;
 using System.Collections.Generic;
@@ -15,6 +18,11 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
         protected override async Task OnInitializedAsync()
         {
             await GetBrandsAsync();
+            hubConnection = hubConnection.TryInitialize(_navigationManager);
+            if (hubConnection.State == HubConnectionState.Disconnected)
+            {
+                await hubConnection.StartAsync();
+            }
         }
         private async Task GetBrandsAsync()
         {
@@ -27,11 +35,11 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
             {
                 foreach (var message in response.Messages)
                 {
-                    _snackBar.Add(message, Severity.Error);
+                    _snackBar.Add(localizer[message], Severity.Error);
                 }
             }
         }
-
+        [CascadingParameter] public HubConnection hubConnection { get; set; }
         private async Task Delete(int id)
         {
             string deleteContent = localizer["Delete Content"];
@@ -46,6 +54,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                 if (response.Succeeded)
                 {
                     await Reset();
+                    await hubConnection.SendAsync("UpdateDashboardAsync");
                     _snackBar.Add(localizer[response.Messages[0]], Severity.Success);
                 }
                 else
@@ -53,7 +62,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                     await Reset();
                     foreach (var message in response.Messages)
                     {
-                        _snackBar.Add(message, Severity.Error);
+                        _snackBar.Add(localizer[message], Severity.Error);
                     }
                 }
             }

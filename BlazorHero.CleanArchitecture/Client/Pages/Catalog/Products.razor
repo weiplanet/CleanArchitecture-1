@@ -2,15 +2,16 @@
 @using BlazorHero.CleanArchitecture.Application.Features.Products.Queries.GetAllPaged;
 @inject Microsoft.Extensions.Localization.IStringLocalizer<Products> localizer
 <HeroTitle Title="@localizer["Products"]" Description="@localizer["Manage Products."]" />
-<MudTable ServerData="@(new Func<TableState, Task<TableData<GetAllPagedProductsResponse>>>(ServerReload))" Hover="true" @ref="table">
+<MudTable Elevation="25" ServerData="@(new Func<TableState, Task<TableData<GetAllPagedProductsResponse>>>(ServerReload))" Hover="true" @ref="table">
     <ToolBarContent>
 
         @if (_authorizationService.AuthorizeAsync(AuthenticationStateProviderUser, Permissions.Products.Create).Result.Succeeded)
         {
-            <div class="justify-center mud-text-align-center">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="@(()=>InvokeModal(0))">@localizer["Create"]</MudButton>
-                <MudButton Variant="Variant.Filled" OnClick="@(()=>OnSearch(""))" Color="Color.Secondary">@localizer["Reload"]</MudButton>
-            </div>
+        <div class="justify-center mud-text-align-center">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="@(()=>InvokeModal(0))">@localizer["Create"]</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="@(()=>OnSearch(""))" Color="Color.Secondary">@localizer["Reload"]</MudButton>
+            <MudButton Variant="Variant.Filled" OnClick="@(ExportToExcel)" Color="Color.Surface">@localizer["Export"]</MudButton>
+        </div>
         }
         <MudToolBarSpacer />
         <MudTextField T="string" ValueChanged="@(s=>OnSearch(s))" Placeholder="@localizer["Search"]" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
