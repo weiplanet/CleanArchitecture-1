@@ -7,11 +7,10 @@ using BlazorHero.CleanArchitecture.Application.Responses.Identity;
 using BlazorHero.CleanArchitecture.Infrastructure.Contexts;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
 using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
 
 namespace BlazorHero.CleanArchitecture.Infrastructure.Services
 {
@@ -20,12 +19,18 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Services
         private readonly BlazorHeroContext _context;
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
+        private readonly IStringLocalizer<ChatService> _localizer;
 
-        public ChatService(BlazorHeroContext context, IMapper mapper, IUserService userService)
+        public ChatService(
+            BlazorHeroContext context,
+            IMapper mapper,
+            IUserService userService,
+            IStringLocalizer<ChatService> localizer)
         {
             _context = context;
             _mapper = mapper;
             _userService = userService;
+            _localizer = localizer;
         }
 
         public async Task<Result<IEnumerable<ChatHistoryResponse>>> GetChatHistoryAsync(string userId, string contactId)
@@ -51,11 +56,11 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Services
                         ToUserImageURL = x.ToUser.ProfilePictureDataUrl,
                         FromUserImageURL = x.FromUser.ProfilePictureDataUrl
                     }).ToListAsync();
-                return Result<IEnumerable<ChatHistoryResponse>>.Success(query);
+                return await Result<IEnumerable<ChatHistoryResponse>>.SuccessAsync(query);
             }
             else
             {
-                throw new ApiException("User Not Found!");
+                throw new ApiException(_localizer["User Not Found!"]);
             }
         }
 
@@ -63,7 +68,7 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Services
         {
             var allUsers = await _context.Users.Where(user => user.Id != userId).ToListAsync();
             var chatUsers = _mapper.Map<IEnumerable<ChatUserResponse>>(allUsers);
-            return Result<IEnumerable<ChatUserResponse>>.Success(chatUsers);
+            return await Result<IEnumerable<ChatUserResponse>>.SuccessAsync(chatUsers);
         }
 
         public async Task<IResult> SaveMessageAsync(ChatHistory message)
@@ -71,7 +76,7 @@ namespace BlazorHero.CleanArchitecture.Infrastructure.Services
             message.ToUser = await _context.Users.Where(user => user.Id == message.ToUserId).FirstOrDefaultAsync();
             await _context.ChatHistories.AddAsync(message);
             await _context.SaveChangesAsync();
-            return Result.Success();
+            return await Result.SuccessAsync();
         }
     }
 }

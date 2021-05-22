@@ -123,6 +123,9 @@
   <data name="Administrator" xml:space="preserve">
     <value>Amministratore</value>
   </data>
+  <data name="Audit Trails" xml:space="preserve">
+    <value>Registro Attività</value>
+  </data>
   <data name="Brands" xml:space="preserve">
     <value>Marche</value>
   </data>
@@ -138,11 +141,14 @@
   <data name="Dashboard" xml:space="preserve">
     <value>Dashboard</value>
   </data>
+  <data name="Document Store" xml:space="preserve">
+    <value>Archivio documenti</value>
+  </data>
   <data name="FAQs" xml:space="preserve">
     <value>FAQs</value>
   </data>
   <data name="Features" xml:space="preserve">
-    <value>Features</value>
+    <value>Caratteristiche</value>
   </data>
   <data name="Home" xml:space="preserve">
     <value>Home</value>

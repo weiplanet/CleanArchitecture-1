@@ -49,6 +49,7 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.Identity
         {
             return Ok(await _userService.UpdateRolesAsync(request));
         }
+
         [AllowAnonymous]
         [HttpPost]
         public async Task<IActionResult> RegisterAsync(RegisterRequest request)
@@ -75,7 +76,7 @@ namespace BlazorHero.CleanArchitecture.Server.Controllers.Identity
         public async Task<IActionResult> ForgotPasswordAsync(ForgotPasswordRequest request)
         {
             var origin = Request.Headers["origin"];
-            return Ok(await _userService.ForgotPasswordAsync(request.Email, origin));
+            return Ok(await _userService.ForgotPasswordAsync(request, origin));
         }
 
         [HttpPost("reset-password")]

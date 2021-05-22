@@ -1,5 +1,6 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Responses.Identity;
 using BlazorHero.CleanArchitecture.Client.Extensions;
+using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
@@ -7,16 +8,21 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorHero.CleanArchitecture.Application.Requests.Identity;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
 {
     public partial class Roles
     {
-        public List<RoleResponse> RoleList = new List<RoleResponse>();
-        private RoleResponse role = new RoleResponse();
+        public List<RoleResponse> RoleList = new();
+        private RoleResponse role = new();
         private string searchString = "";
+        private bool _dense = true;
+        private bool _striped = true;
+        private bool _bordered = false;
 
         [CascadingParameter] public HubConnection hubConnection { get; set; }
+
         protected override async Task OnInitializedAsync()
         {
             await GetRolesAsync();
@@ -26,6 +32,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                 await hubConnection.StartAsync();
             }
         }
+
         private async Task GetRolesAsync()
         {
             var response = await _roleManager.GetRolesAsync();
@@ -45,10 +52,12 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
         private async Task Delete(string id)
         {
             string deleteContent = localizer["Delete Content"];
-            var parameters = new DialogParameters();
-            parameters.Add("ContentText", string.Format(deleteContent, id));
-            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
-            var dialog = _dialogService.Show<Shared.Dialogs.DeleteConfirmation>("Delete", parameters, options);
+            var parameters = new DialogParameters
+            {
+                {"ContentText", string.Format(deleteContent, id)}
+            };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
+            var dialog = _dialogService.Show<Shared.Dialogs.DeleteConfirmation>(localizer["Delete"], parameters, options);
             var result = await dialog.Result;
             if (!result.Cancelled)
             {
@@ -56,7 +65,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                 if (response.Succeeded)
                 {
                     await Reset();
-                    await hubConnection.SendAsync("UpdateDashboardAsync");
+                    await hubConnection.SendAsync(ApplicationConstants.SignalR.SendUpdateDashboard);
                     _snackBar.Add(localizer[response.Messages[0]], Severity.Success);
                 }
                 else
@@ -76,10 +85,16 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             if (id != null)
             {
                 role = RoleList.FirstOrDefault(c => c.Id == id);
-                parameters.Add("Id", role.Id);
-                parameters.Add("Name", role.Name);
+                if (role != null)
+                {
+                    parameters.Add(nameof(RoleModal.RoleModel), new RoleRequest
+                    {
+                        Id = role.Id,
+                        Name = role.Name
+                    });
+                }
             }
-            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
             var dialog = _dialogService.Show<RoleModal>("Modal", parameters, options);
             var result = await dialog.Result;
             if (!result.Cancelled)
@@ -97,7 +112,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
         private bool Search(RoleResponse role)
         {
             if (string.IsNullOrWhiteSpace(searchString)) return true;
-            if (role.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            if (role.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
             {
                 return true;
             }

@@ -6,20 +6,22 @@ using BlazorHero.CleanArchitecture.Domain.Entities;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
 using MediatR;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
 
 namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.AddEdit
 {
     public partial class AddEditDocumentCommand : IRequest<Result<int>>
     {
         public int Id { get; set; }
+        [Required]
         public string Title { get; set; }
+        [Required]
         public string Description { get; set; }
         public bool IsPublic { get; set; } = false;
+        [Required]
         public string URL { get; set; }
         public UploadRequest UploadRequest { get; set; }
     }
@@ -29,12 +31,14 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.A
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUploadService _uploadService;
+        private readonly IStringLocalizer<AddEditDocumentCommandHandler> _localizer;
 
-        public AddEditDocumentCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, IUploadService uploadService)
+        public AddEditDocumentCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, IUploadService uploadService, IStringLocalizer<AddEditDocumentCommandHandler> localizer)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _uploadService = uploadService;
+            _localizer = localizer;
         }
 
         public async Task<Result<int>> Handle(AddEditDocumentCommand command, CancellationToken cancellationToken)
@@ -54,7 +58,7 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.A
                 }
                 await _unitOfWork.Repository<Document>().AddAsync(doc);
                 await _unitOfWork.Commit(cancellationToken);
-                return Result<int>.Success(doc.Id, "Document Saved");
+                return await Result<int>.SuccessAsync(doc.Id, _localizer["Document Saved"]);
             }
             else
             {
@@ -70,13 +74,12 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.A
                     }
                     await _unitOfWork.Repository<Document>().UpdateAsync(doc);
                     await _unitOfWork.Commit(cancellationToken);
-                    return Result<int>.Success(doc.Id, "Document Updated");
+                    return await Result<int>.SuccessAsync(doc.Id, _localizer["Document Updated"]);
                 }
                 else
                 {
-                    return Result<int>.Fail("Document Not Found!");
+                    return await Result<int>.FailAsync(_localizer["Document Not Found!"]);
                 }
-
             }
         }
     }

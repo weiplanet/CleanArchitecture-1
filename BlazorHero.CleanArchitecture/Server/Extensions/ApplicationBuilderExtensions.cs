@@ -1,9 +1,15 @@
-﻿using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
+﻿using System.Globalization;
+using System.Linq;
+using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
 using BlazorHero.CleanArchitecture.Server.Hubs;
+using BlazorHero.CleanArchitecture.Server.Middlewares;
+using BlazorHero.CleanArchitecture.Shared.Constants.Localization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 
 namespace BlazorHero.CleanArchitecture.Server.Extensions
 {
@@ -27,7 +33,7 @@ namespace BlazorHero.CleanArchitecture.Server.Extensions
             app.UseSwagger();
             app.UseSwaggerUI(options =>
             {
-                options.SwaggerEndpoint("/swagger/v1/swagger.json", "BlazorHero.CleanArchitecture.Server");
+                options.SwaggerEndpoint("/swagger/v1/swagger.json", typeof(Program).Assembly.GetName().Name);
                 options.RoutePrefix = "swagger";
                 options.DisplayRequestDuration();
             });
@@ -39,8 +45,24 @@ namespace BlazorHero.CleanArchitecture.Server.Extensions
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
-                endpoints.MapHub<SignalRHub>("/signalRHub");
+                endpoints.MapHub<SignalRHub>(ApplicationConstants.SignalR.HubUrl);
             });
+
+        public static IApplicationBuilder UseRequestLocalizationByCulture(this IApplicationBuilder app)
+        {
+            var supportedCultures = LocalizationConstants.SupportedLanguages.Select(l => new CultureInfo(l.Code)).ToArray();
+            app.UseRequestLocalization(options =>
+            {
+                options.SupportedUICultures = supportedCultures;
+                options.SupportedCultures = supportedCultures;
+                options.DefaultRequestCulture = new RequestCulture(supportedCultures.First());
+                options.ApplyCurrentCultureToResponseHeaders = true;
+            });
+
+            app.UseMiddleware<RequestCultureMiddleware>();
+
+            return app;
+        }
 
         public static IApplicationBuilder Initialize(this IApplicationBuilder app, Microsoft.Extensions.Configuration.IConfiguration _configuration)
         {

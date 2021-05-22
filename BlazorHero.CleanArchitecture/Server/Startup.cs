@@ -21,7 +21,7 @@ namespace BlazorHero.CleanArchitecture.Server
             _configuration = configuration;
         }
 
-        public IConfiguration _configuration { get; }
+        private readonly IConfiguration _configuration;
 
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
@@ -32,6 +32,13 @@ namespace BlazorHero.CleanArchitecture.Server
             services.AddDatabase(_configuration);
             services.AddIdentity();
             services.AddJwtAuthentication(services.GetApplicationSettings(_configuration));
+            //TODO - add CustomServerLocalStorageService
+            //services.AddScoped<ILocalStorageService, CustomServerLocalStorageService>();
+            //services.AddScoped<IServerPreferenceManager, ServerPreferenceManager>();
+            services.AddLocalization(options =>
+            {
+                options.ResourcesPath = "Resources";
+            });
             services.AddApplicationLayer();
             services.AddApplicationServices();
             services.AddSharedInfrastructure(_configuration);
@@ -39,7 +46,7 @@ namespace BlazorHero.CleanArchitecture.Server
             services.AddInfrastructureMappings();
             services.AddHangfire(x => x.UseSqlServerStorage(_configuration.GetConnectionString("DefaultConnection")));
             services.AddHangfireServer();
-            services.AddControllers();
+            services.AddControllers().AddValidators();
             services.AddRazorPages();
             services.AddApiVersioning(config =>
             {
@@ -47,6 +54,7 @@ namespace BlazorHero.CleanArchitecture.Server
                 config.AssumeDefaultVersionWhenUnspecified = true;
                 config.ReportApiVersions = true;
             });
+            services.AddLazyCache();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -62,6 +70,7 @@ namespace BlazorHero.CleanArchitecture.Server
                 FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), @"Files")),
                 RequestPath = new PathString("/Files")
             });
+            app.UseRequestLocalizationByCulture();
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();

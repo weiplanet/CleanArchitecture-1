@@ -1,11 +1,10 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Responses.Audit;
+using Microsoft.JSInterop;
 using MudBlazor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.JSInterop;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Utilities
 {
@@ -14,19 +13,57 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Utilities
         public List<RelatedAuditTrail> Trails = new List<RelatedAuditTrail>();
         private RelatedAuditTrail Trail = new RelatedAuditTrail();
         private string searchString = "";
+        private bool _dense = true;
+        private bool _striped = true;
+        private bool _bordered = false;
+        private bool _searchInOldValues = false;
+        private bool _searchInNewValues = false;
+        private MudDateRangePicker _dateRangePicker;
+        private DateRange _dateRange;
+
         private bool Search(AuditResponse response)
         {
-            if (string.IsNullOrWhiteSpace(searchString)) return true;
-            if (response.TableName.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            var result = false;
+
+            // check Search String
+            if (string.IsNullOrWhiteSpace(searchString)) result = true;
+            if (!result)
             {
-                return true;
+                if (response.TableName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    result = true;
+                }
+                if (_searchInOldValues &&
+                    response.OldValues?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    result = true;
+                }
+                if (_searchInNewValues &&
+                    response.NewValues?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    result = true;
+                }
             }
-            return false;
+
+            // check Date Range
+            if (_dateRange?.Start == null && _dateRange?.End == null) return result;
+            if (_dateRange?.Start != null && response.DateTime < _dateRange.Start)
+            {
+                result = false;
+            }
+            if (_dateRange?.End != null && response.DateTime > _dateRange.End + new TimeSpan(0,11, 59, 59, 999))
+            {
+                result = false;
+            }
+
+            return result;
         }
+
         protected override async Task OnInitializedAsync()
         {
             await GetDataAsync();
         }
+
         private async Task GetDataAsync()
         {
             var response = await _auditManager.GetCurrentUserTrailsAsync();
@@ -55,15 +92,17 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Utilities
                 }
             }
         }
+
         private void ShowBtnPress(int id)
         {
             Trail = Trails.First(f => f.Id == id);
-            foreach(var trial in Trails.Where(a=>a.Id != id))
+            foreach (var trial in Trails.Where(a => a.Id != id))
             {
                 trial.ShowDetails = false;
             }
             Trail.ShowDetails = !Trail.ShowDetails;
         }
+
         private async Task ExportToExcelAsync()
         {
             var base64 = await _auditManager.DownloadFileAsync();
@@ -74,11 +113,11 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Utilities
                 MimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             });
         }
+
         public class RelatedAuditTrail : AuditResponse
         {
             public bool ShowDetails { get; set; } = false;
             public DateTime LocalTime { get; set; }
-
         }
     }
 }

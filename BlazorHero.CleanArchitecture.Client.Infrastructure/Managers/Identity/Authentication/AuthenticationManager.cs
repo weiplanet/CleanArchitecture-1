@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using BlazorHero.CleanArchitecture.Client.Infrastructure.Routes;
 
 namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.Authentication
 {
@@ -40,7 +41,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
 
         public async Task<IResult> Login(TokenRequest model)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/identity/token", model);
+            var response = await _httpClient.PostAsJsonAsync(TokenEndpoints.Get, model);
             var result = await response.ToResult<TokenResponse>();
             if (result.Succeeded)
             {
@@ -49,17 +50,17 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
                 var userImageURL = result.Data.UserImageURL;
                 await _localStorage.SetItemAsync("authToken", token);
                 await _localStorage.SetItemAsync("refreshToken", refreshToken);
-                if(!string.IsNullOrEmpty(userImageURL))
+                if (!string.IsNullOrEmpty(userImageURL))
                 {
                     await _localStorage.SetItemAsync("userImageURL", userImageURL);
-                }               
+                }
                 ((BlazorHeroStateProvider)this._authenticationStateProvider).MarkUserAsAuthenticated(model.Email);
                 _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                return Result.Success();
+                return await Result.SuccessAsync();
             }
             else
             {
-                return Result.Fail(result.Messages);
+                return await Result.FailAsync(result.Messages);
             }
         }
 
@@ -70,8 +71,9 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
             await _localStorage.RemoveItemAsync("userImageURL");
             ((BlazorHeroStateProvider)_authenticationStateProvider).MarkUserAsLoggedOut();
             _httpClient.DefaultRequestHeaders.Authorization = null;
-            return Result.Success();
+            return await Result.SuccessAsync();
         }
+
         public async Task<string> RefreshToken()
         {
             var token = await _localStorage.GetItemAsync<string>("authToken");
@@ -80,7 +82,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
             var tokenRequest = JsonSerializer.Serialize(new TokenResponse { Token = token, RefreshToken = refreshToken });
             var bodyContent = new StringContent(tokenRequest, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync(Routes.TokenEndpoint.Refresh, bodyContent);
+            var response = await _httpClient.PostAsync(Routes.TokenEndpoints.Refresh, bodyContent);
 
             var result = await response.ToResult<TokenResponse>();
 
@@ -104,7 +106,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
             if (string.IsNullOrEmpty(availableToken)) return string.Empty;
             var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
             var user = authState.User;
-            var exp = user.FindFirst(c => c.Type.Equals("exp")).Value;
+            var exp = user.FindFirst(c => c.Type.Equals("exp"))?.Value;
             var expTime = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(exp));
             var timeUTC = DateTime.UtcNow;
             var diff = expTime - timeUTC;
@@ -112,6 +114,7 @@ namespace BlazorHero.CleanArchitecture.Client.Infrastructure.Managers.Identity.A
                 return await RefreshToken();
             return string.Empty;
         }
+
         public async Task<string> TryForceRefreshToken()
         {
             return await RefreshToken();

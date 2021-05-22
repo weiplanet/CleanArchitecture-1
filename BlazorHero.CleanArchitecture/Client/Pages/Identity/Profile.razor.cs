@@ -6,6 +6,7 @@ using MudBlazor;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using Blazored.FluentValidation;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
 {
@@ -13,9 +14,12 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
     {
         [Inject] private Microsoft.Extensions.Localization.IStringLocalizer<Profile> localizer { get; set; }
 
+        private FluentValidationValidator _fluentValidationValidator;
+        private bool validated => _fluentValidationValidator.Validate(options => { options.IncludeAllRuleSets(); });
+
         private char FirstLetterOfName { get; set; }
 
-        private readonly UpdateProfileRequest profileModel = new UpdateProfileRequest();
+        private readonly UpdateProfileRequest profileModel = new();
         public string UserId { get; set; }
 
         private async Task UpdateProfileAsync()
@@ -40,6 +44,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
         {
             await LoadDataAsync();
         }
+
         private async Task LoadDataAsync()
         {
             var state = await _stateProvider.GetAuthenticationStateAsync();
@@ -71,9 +76,9 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
             if (file != null)
             {
                 var extension = Path.GetExtension(file.Name);
-                var fileName = $"{UserId}-{Guid.NewGuid()}{extension}";                
+                var fileName = $"{UserId}-{Guid.NewGuid()}{extension}";
                 var format = "image/png";
-                var imageFile = await e.File.RequestImageFileAsync(format,400,400);
+                var imageFile = await e.File.RequestImageFileAsync(format, 400, 400);
                 var buffer = new byte[imageFile.Size];
                 await imageFile.OpenReadStream().ReadAsync(buffer);
                 var request = new UpdateProfilePictureRequest() { Data = buffer, FileName = fileName, Extension = extension, UploadType = Application.Enums.UploadType.ProfilePicture };
@@ -90,14 +95,16 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                         _snackBar.Add(localizer[error], Severity.Error);
                     }
                 }
-
             }
         }
 
         private async Task DeleteAsync()
         {
-            var parameters = new DialogParameters();
-            parameters.Add("ContentText", $"Do you want to delete the profile picture of {profileModel.Email} ?");
+            var parameters = new DialogParameters
+            {
+                //TODO: localize
+                {"ContentText", $"Do you want to delete the profile picture of {profileModel.Email} ?"}
+            };
             var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
             var dialog = _dialogService.Show<Shared.Dialogs.DeleteConfirmation>("Delete", parameters, options);
             var result = await dialog.Result;

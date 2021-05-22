@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorHero.CleanArchitecture.Application.Features.Documents.Commands.AddEdit;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
 {
@@ -17,23 +18,28 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
         private int totalItems;
         private int currentPage;
         private string searchString = null;
+        private bool _dense = true;
+        private bool _striped = true;
+        private bool _bordered = false;
+
         protected override async Task OnInitializedAsync()
         {
             var state = await _stateProvider.GetAuthenticationStateAsync();
             var user = state.User;
             if (user == null) return;
-            if (user.Identity.IsAuthenticated)
+            if (user.Identity?.IsAuthenticated == true)
             {
                 CurrentUserId = user.GetUserId();
-
             }
         }
+
         private async Task<TableData<GetAllDocumentsResponse>> ServerReload(TableState state)
         {
-            await LoadData(state.Page, state.PageSize);
-            return new TableData<GetAllDocumentsResponse>() { TotalItems = totalItems, Items = pagedData };
+            await LoadData(state.Page, state.PageSize, state);
+            return new TableData<GetAllDocumentsResponse> { TotalItems = totalItems, Items = pagedData };
         }
-        private async Task LoadData(int pageNumber, int pageSize)
+
+        private async Task LoadData(int pageNumber, int pageSize, TableState state)
         {
             var request = new GetAllPagedDocumentsRequest { PageSize = pageSize, PageNumber = pageNumber + 1 };
             var response = await _documentManager.GetAllAsync(request);
@@ -42,7 +48,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
                 totalItems = response.TotalCount;
                 currentPage = response.CurrentPage;
                 var data = response.Data;
-                data = data.Where(element =>
+                var loadedData = data.Where(element =>
                 {
                     if (string.IsNullOrWhiteSpace(searchString))
                         return true;
@@ -51,7 +57,29 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
                     if (element.Description.Contains(searchString, StringComparison.OrdinalIgnoreCase))
                         return true;
                     return false;
-                }).ToList();
+                });
+                switch (state.SortLabel)
+                {
+                    case "documentIdField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.Id);
+                        break;
+                    case "documentTitleField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.Title);
+                        break;
+                    case "documentDescriptionField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.Description);
+                        break;
+                    case "documentIsPublicField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.IsPublic);
+                        break;
+                    case "documentDateCreatedField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.CreatedOn);
+                        break;
+                    case "documentOwnerField":
+                        loadedData = loadedData.OrderByDirection(state.SortDirection, d => d.CreatedBy);
+                        break;
+                }
+                data = loadedData.ToList();
                 pagedData = data;
             }
             else
@@ -75,13 +103,19 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
             if (id != 0)
             {
                 var doc = pagedData.FirstOrDefault(c => c.Id == id);
-                parameters.Add("Id", doc.Id);
-                parameters.Add("Title", doc.Title);
-                parameters.Add("Description", doc.Description);
-                parameters.Add("URL", doc.URL);
-                parameters.Add("IsPublic", doc.IsPublic);
+                if (doc != null)
+                {
+                    parameters.Add(nameof(AddEditDocumentModal.AddEditDocumentModel), new AddEditDocumentCommand
+                    {
+                        Id = doc.Id,
+                        Title = doc.Title,
+                        Description = doc.Description,
+                        URL = doc.URL,
+                        IsPublic = doc.IsPublic
+                    });
+                }
             }
-            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, DisableBackdropClick = true };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true, DisableBackdropClick = true };
             var dialog = _dialogService.Show<AddEditDocumentModal>("Modal", parameters, options);
             var result = await dialog.Result;
             if (!result.Cancelled)
@@ -89,13 +123,16 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Misc
                 OnSearch("");
             }
         }
+
         private async Task Delete(int id)
         {
             string deleteContent = localizer["Delete Content"];
-            var parameters = new DialogParameters();
-            parameters.Add("ContentText", string.Format(deleteContent, id));
-            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
-            var dialog = _dialogService.Show<Shared.Dialogs.DeleteConfirmation>("Delete", parameters, options);
+            var parameters = new DialogParameters
+            {
+                {nameof(Shared.Dialogs.DeleteConfirmation.ContentText), string.Format(deleteContent, id)}
+            };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
+            var dialog = _dialogService.Show<Shared.Dialogs.DeleteConfirmation>(localizer["Delete"], parameters, options);
             var result = await dialog.Result;
             if (!result.Cancelled)
             {

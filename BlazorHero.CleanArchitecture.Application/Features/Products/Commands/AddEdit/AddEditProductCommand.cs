@@ -1,24 +1,30 @@
-﻿using AutoMapper;
+﻿using System.ComponentModel.DataAnnotations;
+using AutoMapper;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Repositories;
 using BlazorHero.CleanArchitecture.Application.Interfaces.Services;
 using BlazorHero.CleanArchitecture.Application.Requests;
 using BlazorHero.CleanArchitecture.Domain.Entities.Catalog;
 using BlazorHero.CleanArchitecture.Shared.Wrapper;
 using MediatR;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
 
 namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.AddEdit
 {
     public partial class AddEditProductCommand : IRequest<Result<int>>
     {
         public int Id { get; set; }
+        [Required]
         public string Name { get; set; }
+        [Required]
         public string Barcode { get; set; }
+        [Required]
         public string Description { get; set; }
         public string ImageDataURL { get; set; }
+        [Required]
         public decimal Rate { get; set; }
+        [Required]
         public int BrandId { get; set; }
         public UploadRequest UploadRequest { get; set; }
     }
@@ -28,12 +34,14 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Ad
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUploadService _uploadService;
+        private readonly IStringLocalizer<AddEditProductCommandHandler> _localizer;
 
-        public AddEditProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, IUploadService uploadService)
+        public AddEditProductCommandHandler(IUnitOfWork unitOfWork, IMapper mapper, IUploadService uploadService, IStringLocalizer<AddEditProductCommandHandler> localizer)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _uploadService = uploadService;
+            _localizer = localizer;
         }
 
         public async Task<Result<int>> Handle(AddEditProductCommand command, CancellationToken cancellationToken)
@@ -53,7 +61,7 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Ad
                 }
                 await _unitOfWork.Repository<Product>().AddAsync(product);
                 await _unitOfWork.Commit(cancellationToken);
-                return Result<int>.Success(product.Id, "Product Saved");
+                return await Result<int>.SuccessAsync(product.Id, _localizer["Product Saved"]);
             }
             else
             {
@@ -70,13 +78,12 @@ namespace BlazorHero.CleanArchitecture.Application.Features.Products.Commands.Ad
                     product.BrandId = (command.BrandId == 0) ? product.BrandId : command.BrandId;
                     await _unitOfWork.Repository<Product>().UpdateAsync(product);
                     await _unitOfWork.Commit(cancellationToken);
-                    return Result<int>.Success(product.Id, "Product Updated");
+                    return await Result<int>.SuccessAsync(product.Id, _localizer["Product Updated"]);
                 }
                 else
                 {
-                    return Result<int>.Fail("Product Not Found!");
+                    return await Result<int>.FailAsync(_localizer["Product Not Found!"]);
                 }
-
             }
         }
     }

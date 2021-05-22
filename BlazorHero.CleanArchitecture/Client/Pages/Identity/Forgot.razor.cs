@@ -1,44 +1,35 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Requests.Identity;
-using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Threading.Tasks;
+using Blazored.FluentValidation;
+using Microsoft.AspNetCore.Components;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
 {
     public partial class Forgot
     {
-        bool success;
-        string[] errors = { };
-        MudForm form;
-        [Parameter]
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+        [Inject] private Microsoft.Extensions.Localization.IStringLocalizer<Forgot> localizer { get; set; }
+
+        private FluentValidationValidator _fluentValidationValidator;
+        private bool validated => _fluentValidationValidator.Validate(options => { options.IncludeAllRuleSets(); });
+
+        private readonly ForgotPasswordRequest emailModel = new();
+
         private async Task SubmitAsync()
         {
-            form.Validate();
-            if (form.IsValid)
+            var result = await _userManager.ForgotPasswordAsync(emailModel);
+            if (result.Succeeded)
             {
-                var request = new ForgotPasswordRequest() { Email = Email };
-                var result = await _userManager.ForgotPasswordAsync(request);
-                if (result.Succeeded)
+                _snackBar.Add(localizer["Done!"], Severity.Success);
+                _navigationManager.NavigateTo("/");
+            }
+            else
+            {
+                foreach (var message in result.Messages)
                 {
-                    _snackBar.Add(localizer["Done!"], Severity.Success);
-                    _navigationManager.NavigateTo("/");
-                }
-                else
-                {
-                    foreach (var message in result.Messages)
-                    {
-                        _snackBar.Add(localizer[message], Severity.Error);
-                    }
+                    _snackBar.Add(localizer[message], Severity.Error);
                 }
             }
-
         }
     }
 }

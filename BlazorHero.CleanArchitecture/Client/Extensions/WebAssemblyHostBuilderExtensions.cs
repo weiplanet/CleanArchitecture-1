@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using MudBlazor;
 using MudBlazor.Services;
-using Polly;
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
@@ -32,6 +32,10 @@ namespace BlazorHero.CleanArchitecture.Client.Extensions
         {
             builder
                 .Services
+                .AddLocalization(options =>
+                {
+                    options.ResourcesPath = "Resources";
+                })
                 .AddAuthorizationCore(options =>
                 {
                     foreach (var permissionModule in PermissionModules.GetAllPermissionsModules())
@@ -40,12 +44,7 @@ namespace BlazorHero.CleanArchitecture.Client.Extensions
                     }
                 })
                 .AddBlazoredLocalStorage()
-                .AddLocalization(options =>
-                {
-                    options.ResourcesPath = "Resources";
-                })
-                .AddMudServices(
-                configuration =>
+                .AddMudServices(configuration =>
                 {
                     configuration.SnackbarConfiguration.PositionClass = Defaults.Classes.Position.BottomRight;
                     configuration.SnackbarConfiguration.HideTransitionDuration = 100;
@@ -54,7 +53,7 @@ namespace BlazorHero.CleanArchitecture.Client.Extensions
                     configuration.SnackbarConfiguration.ShowCloseIcon = false;
                 })
                 .AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies())
-                .AddScoped<PreferenceManager>()
+                .AddScoped<ClientPreferenceManager>()
                 .AddScoped<BlazorHeroStateProvider>()
                 .AddScoped<AuthenticationStateProvider, BlazorHeroStateProvider>()
                 .AddManagers()
@@ -62,7 +61,12 @@ namespace BlazorHero.CleanArchitecture.Client.Extensions
                 .AddScoped(sp => sp
                     .GetRequiredService<IHttpClientFactory>()
                     .CreateClient(ClientName).EnableIntercept(sp))
-                .AddHttpClient(ClientName, client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
+                .AddHttpClient(ClientName, client =>
+                {
+                    client.DefaultRequestHeaders.AcceptLanguage.Clear();
+                    client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(CultureInfo.DefaultThreadCurrentCulture?.TwoLetterISOLanguageName);
+                    client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+                })
                 .AddHttpMessageHandler<AuthenticationHeaderHandler>();
             builder.Services.AddHttpClientInterceptor();
             return builder;

@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 
 namespace BlazorHero.CleanArchitecture.Client.Extensions
 {
@@ -14,7 +11,7 @@ namespace BlazorHero.CleanArchitecture.Client.Extensions
             if (hubConnection == null)
             {
                 hubConnection = new HubConnectionBuilder()
-                                  .WithUrl(navigationManager.ToAbsoluteUri("/signalRHub"))
+                                  .WithUrl(navigationManager.ToAbsoluteUri(ApplicationConstants.SignalR.HubUrl))
                                   .Build();
             }
             return hubConnection;

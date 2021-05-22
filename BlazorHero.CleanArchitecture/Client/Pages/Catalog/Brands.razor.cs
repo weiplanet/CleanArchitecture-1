@@ -1,5 +1,6 @@
 ﻿using BlazorHero.CleanArchitecture.Application.Features.Brands.Queries.GetAll;
 using BlazorHero.CleanArchitecture.Client.Extensions;
+using BlazorHero.CleanArchitecture.Shared.Constants.Application;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.SignalR.Client;
 using MudBlazor;
@@ -7,14 +8,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorHero.CleanArchitecture.Application.Features.Brands.Commands.AddEdit;
 
 namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
 {
     public partial class Brands
     {
-        public List<GetAllBrandsResponse> BrandList = new List<GetAllBrandsResponse>();
-        private GetAllBrandsResponse brand = new GetAllBrandsResponse();
+        public List<GetAllBrandsResponse> BrandList = new();
+        private GetAllBrandsResponse brand = new();
         private string searchString = "";
+        private bool _dense = true;
+        private bool _striped = true;
+        private bool _bordered = false;
+
         protected override async Task OnInitializedAsync()
         {
             await GetBrandsAsync();
@@ -24,6 +30,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                 await hubConnection.StartAsync();
             }
         }
+
         private async Task GetBrandsAsync()
         {
             var response = await _brandManager.GetAllAsync();
@@ -39,7 +46,9 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                 }
             }
         }
+
         [CascadingParameter] public HubConnection hubConnection { get; set; }
+
         private async Task Delete(int id)
         {
             string deleteContent = localizer["Delete Content"];
@@ -54,7 +63,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
                 if (response.Succeeded)
                 {
                     await Reset();
-                    await hubConnection.SendAsync("UpdateDashboardAsync");
+                    await hubConnection.SendAsync(ApplicationConstants.SignalR.SendUpdateDashboard);
                     _snackBar.Add(localizer[response.Messages[0]], Severity.Success);
                 }
                 else
@@ -74,12 +83,18 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
             if (id != 0)
             {
                 brand = BrandList.FirstOrDefault(c => c.Id == id);
-                parameters.Add("Id", brand.Id);
-                parameters.Add("Name", brand.Name);
-                parameters.Add("Description", brand.Description);
-                parameters.Add("Tax", brand.Tax);
+                if (brand != null)
+                {
+                    parameters.Add(nameof(AddEditBrandModal.AddEditBrandModel), new AddEditBrandCommand
+                    {
+                        Id = brand.Id,
+                        Name = brand.Name,
+                        Description = brand.Description,
+                        Tax = brand.Tax
+                    });
+                }
             }
-            var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
+            var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true, DisableBackdropClick = true };
             var dialog = _dialogService.Show<AddEditBrandModal>("Modal", parameters, options);
             var result = await dialog.Result;
             if (!result.Cancelled)
@@ -97,7 +112,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Catalog
         private bool Search(GetAllBrandsResponse brand)
         {
             if (string.IsNullOrWhiteSpace(searchString)) return true;
-            if (brand.Name.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            if (brand.Name?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
             {
                 return true;
             }

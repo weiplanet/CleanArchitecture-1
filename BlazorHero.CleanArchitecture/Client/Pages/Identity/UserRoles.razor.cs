@@ -1,8 +1,8 @@
-﻿using BlazorHero.CleanArchitecture.Application.Requests.Identity;
+﻿using System;
+using BlazorHero.CleanArchitecture.Application.Requests.Identity;
 using BlazorHero.CleanArchitecture.Application.Responses.Identity;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -20,8 +20,14 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
         [Parameter]
         public string Description { get; set; }
 
-        public List<UserRoleModel> UserRolesList { get; set; } = new List<UserRoleModel>();
+        public List<UserRoleModel> UserRolesList { get; set; } = new();
         public ClaimsPrincipal CurrentUser { get; set; }
+
+        private UserRoleModel userRole = new();
+        private string searchString = "";
+        private bool _dense = true;
+        private bool _striped = true;
+        private bool _bordered = false;
 
         protected override async Task OnInitializedAsync()
         {
@@ -41,6 +47,7 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                 }
             }
         }
+
         private async Task SaveAsync()
         {
             var request = new UpdateUserRolesRequest()
@@ -61,6 +68,16 @@ namespace BlazorHero.CleanArchitecture.Client.Pages.Identity
                     _snackBar.Add(localizer[error], Severity.Error);
                 }
             }
+        }
+
+        private bool Search(UserRoleModel userRole)
+        {
+            if (string.IsNullOrWhiteSpace(searchString)) return true;
+            if (userRole.RoleName?.Contains(searchString, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }
